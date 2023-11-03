@@ -21,6 +21,7 @@ from datetime import datetime
 import logging
 import pymongo
 import redis_cache
+import appconstants
 
 CONNECTION_STRING = "mongodb://%s:%s" % (
     os.environ["MONGODB_HOST"], os.environ["MONGODB_PORT"])
@@ -58,11 +59,11 @@ def add_user(username, email, password):
         entry = {"username": username, "email": email, "password": encrypted_password}
         if cursor is None:
             USERS.insert_one(entry)
-            response = {"status": "user added"}
+            response = appconstants.USER_ADDED
         else:
-            response = {"status": "please try with new email address"}
+            response = appconstants.EMAIL_ALREADY_EXISTS
     except pymongo.errors.ConnectionFailure as ex:
-        response = {"exception": "Some issue with MongoDB Connectivity"}
+        response = appconstants.MONGODB_CONNECTIVITY_ISSUE
         logging.error('Exception at add_user %s', str(ex))
     return response
 
@@ -79,19 +80,19 @@ def delete_user(username, email):
     :return: a response dictionary with the status of the user deletion. The status can be either
     "user deleted successfully" or "user delete failed".
     """
-    query1 = {"email": email}
-    query2 = dict(query1)
-    query2["username"] = username
+    USERLOGIN_DELETE = {"email": email}
+    USER_DELETE = dict(USERLOGIN_DELETE)
+    USER_DELETE["username"] = username
     response = {}
     try:
-        delete_cursor = USERS.delete_one(query2)
+        delete_cursor = USERS.delete_one(USER_DELETE)
         if delete_cursor.deleted_count == 1:
-            response = {"status": "user deleted successfully"}
-            USERLOGIN.delete_one(query1)
+            response = appconstants.USER_DELETED
+            USERLOGIN.delete_one(USERLOGIN_DELETE)
         else:
-            response = {"status": "user delete failed"}
+            response = appconstants.USER_DELETE_FAILED
     except pymongo.errors.ConnectionFailure as ex:
-        response = {"exception": "Some issue with MongoDB Connectivity"}
+        response = appconstants.MONGODB_CONNECTIVITY_ISSUE
         logging.error('Exception at delete_user %s', str(ex))
     return response
 
@@ -116,11 +117,11 @@ def update_user(username, email, encrypted_password):
     try:
         update_cursor = USERS.update_one(query_parameters, new_value)
         if update_cursor.modified_count == 1:
-            response = {"status": "Update success"}
+            response = appconstants.USER_UPDATE
         else:
-            response = {"status": "Update failed"}
+            response = appconstants.USER_UPDATE_FAILED
     except pymongo.errors.ConnectionFailure as ex:
-        response = {"exception": "Some issue with MongoDB Connectivity"}
+        response = appconstants.MONGODB_CONNECTIVITY_ISSUE
         logging.error('Exception at update_user %s', str(ex))
     return response
 
@@ -141,13 +142,13 @@ def list_user(email):
     try:
         cursor = USERS.find_one({"email": email})
         if cursor is None:
-            response = {"user": "Not_Found"}
+            response = appconstants.USER_NOT_FOUND
         else:
             login_entry_cursor = USERLOGIN.find_one({"email": email})
             if login_entry_cursor is None:
                 response = {
                     "username": cursor["username"], "email": cursor["email"]}
-                response["lastlogin"] = "user has not logged in"
+                response["lastlogin"] = appconstants.USER_FIRST_LOGIN
             else:
                 readable_date_array = []
                 for login in login_entry_cursor["lastlogin"]:
@@ -155,7 +156,7 @@ def list_user(email):
                 response = {"username": cursor["username"], "email": cursor["email"],
                             "lastlogin": readable_date_array}
     except pymongo.errors.ConnectionFailure as ex:
-        response = {"exception": "Some issue with MongoDB Connectivity"}
+        response = appconstants.MONGODB_CONNECTIVITY_ISSUE
         logging.error('Exception at list_user %s', str(ex))
     return response
 
@@ -179,7 +180,7 @@ def login_user(email, encrypted_password):
         cursor = USERS.find_one(
             {"email": email, "password": encrypted_password})
         if cursor is None:
-            response = {"status": "user login failed"}
+            response = appconstants.USER_LOGIN_FAILED
         else:
             token = uuid.uuid4().hex[:6].upper()
             login_entry_cursor = USERLOGIN.find_one({"email": email})
@@ -195,8 +196,9 @@ def login_user(email, encrypted_password):
                 new_value = {"$set": {"lastlogin": lastlogin}}
                 USERLOGIN.update_one(query, new_value)
             redis_cache.persist_client_token(email, token)
-            response = {"status": "user login success", "token": token}
+            response = appconstants.USER_LOGIN_SUCCESS
+            response["token"]= token
     except pymongo.errors.ConnectionFailure as ex:
-        response = {"exception": "Some issue with MongoDB Connectivity"}
+        response = appconstants.MONGODB_CONNECTIVITY_ISSUE
         logging.error('Exception at login_user %s', str(ex))
     return response

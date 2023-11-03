@@ -14,6 +14,7 @@ from flask import Flask, jsonify, request
 import redis_cache
 import mongo_db_connector
 import validate_param
+import appconstants
 
 # creating a Flask app
 APP = Flask(__name__)
@@ -38,11 +39,11 @@ def list_user():
             if "exception" in response.keys():
                 status_code = 500
         else:
-            response = ({"message": "bad value to the parameter email"})
+            response = appconstants.BAD_EMAIL_VALUE
             status_code = 400
     else:
         status_code = 400
-        response = ({"message": "parameter email missing"})
+        response = appconstants.PARAM_EMAIL_ABSENT
     return (jsonify(response), status_code)
 
 
@@ -70,13 +71,12 @@ def create_user():
                 if "exception" in response.keys():
                     status_code = 500
             else:
-                response = {"message": "bad value to the parameter password"}
+                response = appconstants.BAD_PASSWORD_VALUE
         else:
-            response = ({"message": "bad value to the parameter email"})
+            response = appconstants.BAD_EMAIL_VALUE
             status_code = 400
     else:
-        response = (
-            {"message": "one of the mandatory parameter is missing ( username, email, password )"})
+        response = appconstants.MANDATORY_PARAMETER_U_E_P_MISSING
         status_code = 400
     return (jsonify(response), status_code)
 
@@ -106,11 +106,10 @@ def login_user():
             if "exception" in response.keys():
                 status_code = 500
         else:
-            response = ({"message": "bad value to the parameter email"})
+            response = appconstants.BAD_EMAIL_VALUE
             status_code = 400
     else:
-        response = (
-            {"message": "one of the mandatory parameter is missing ( email, password )"})
+        response = appconstants.MANDATORY_PARAMETER_E_P_MISSING
         status_code = 400
     return (jsonify(response), status_code)
 
@@ -135,10 +134,10 @@ def check_logged_in():
             else:
                 response = ({"message": email + " is not logged in"})
         else:
-            response = ({"message": "bad value to the parameter email"})
+            response =  appconstants.BAD_EMAIL_VALUE
             status_code = 400
     else:
-        response = ({"message": "parameter email missing"})
+        response =  appconstants.PARAM_EMAIL_ABSENT
         status_code = 400
     return (jsonify(response), status_code)
 
@@ -163,12 +162,12 @@ def log_out():
                 else:
                     response = ({"message": email + " failed to logged out"})
             else:
-                response = ({"message": email + " already logged out"})
+                response = ({"message": email + " not logged in. Hence cannot log out"})
         else:
-            response = ({"message": "bad value to the parameter email"})
+            response = appconstants.BAD_EMAIL_VALUE
             status_code = 400
     else:
-        response = ({"message": "parameter email missing"})
+        response = appconstants.PARAM_EMAIL_ABSENT
         status_code = 400
     return (jsonify(response), status_code)
 
@@ -198,14 +197,13 @@ def update_user():
                 if "exception" in response.keys():
                     status_code = 500
             else:
-                response = ({"message": "bad value to the parameter password"})
+                response = appconstants.BAD_PASSWORD_VALUE
                 status_code = 400
         else:
-            response = ({"message": "bad value to the parameter email"})
+            response = appconstants.BAD_EMAIL_VALUE
             status_code = 400
     else:
-        response = (
-            {"message": "one of the mandatory parameter is missing ( username, email, password )"})
+        response = appconstants.MANDATORY_PARAMETER_U_E_P_MISSING
         status_code = 400
     return (jsonify(response), status_code)
 
@@ -229,11 +227,10 @@ def delete_user():
             if "exception" in response.keys():
                 status_code = 500
         else:
-            response = ({"message": "bad value to the parameter email"})
+            response = appconstants.BAD_EMAIL_VALUE
             status_code = 400
     else:
-        response = (
-            {"message": "one of the mandatory parameter is missing ( email, username )"})
+        response = appconstants.MANDATORY_PARAMETER_E_U_MISSING
         status_code = 400
     return (jsonify(response), status_code)
 
@@ -246,5 +243,5 @@ if __name__ == '__main__':
         sys.exit()
     else:
         logging.info("App Env. MONGODB_HOST %s, MONGODB_PORT %d, REDIS_HOST %s, REDIS_PORT %d ",
-                     os.environ["MONGODB_HOST"], os.environ["MONGODB_PORT"], os.environ["REDIS_HOST"], os.environ["REDIS_PORT"])
+                    os.environ["MONGODB_HOST"], os.environ["MONGODB_PORT"], os.environ["REDIS_HOST"], os.environ["REDIS_PORT"])
         APP.run(debug=True)
